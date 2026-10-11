@@ -21,17 +21,17 @@ jobs:
 
       - name: Initialize TWRP Manifest (Android 12.1)
         run: |
-          # استخدام المانفيست المخصص لإصدارات أندرويد 12.1
           repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1
           repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune -j8
 
-      - name: Move Device Tree to Correct Path
+      - name: Fix Device Tree Path
         run: |
-          # تجهيز مسار الجهاز بنسخ محتويات مستودعك إليه
+          # مسح أي مسار قديم خاطئ وإنشاء المسار السليم تماماً
+          rm -rf device/samsung/a04
           mkdir -p device/samsung/a04
-          rm -rf device/samsung/a04/*
-          cp -r * device/samsung/a04/ || true
-          rm -rf device/samsung/a04/.github
+          
+          # نسخ محتويات مستودعك الحالي مباشرة إلى مسار الجهاز بدون تكرار
+          find . -maxdepth 1 ! -name '.' ! -name '.git' ! -name '.github' -exec cp -r {} device/samsung/a04/ \;
 
       - name: Start Compilation
         run: |
@@ -47,7 +47,7 @@ jobs:
           if [ -f out/target/product/a04/recovery.img ]; then
             cp out/target/product/a04/recovery.img final_output/twrp-3.7.1-galaxy-a04.img
           fi
-          echo "tag_name=twrp-a04-$(date +\%Y\%m\%d)" >> $GITHUB_OUTPUT
+          echo "tag_name=twrp-a04-$(date +%Y%m%d)" >> $GITHUB_OUTPUT
 
       - name: Create Release and Upload Image
         uses: softprops/action-gh-release@v1
@@ -57,8 +57,7 @@ jobs:
           name: "TWRP 3.7.1 for Samsung Galaxy A04"
           body: |
             ### مخصص لهاتف: Samsung Galaxy A04 (SM-A045F)
-            - **الإصدار:** TWRP 12.1
-            - **طريقة التثبيت:** تفليش ملف `.img` أو تحويله لـ `.tar` باستخدام أودين عبر AP.
+            - تم البناء بنجاح عبر GitHub Actions.
           draft: false
           prerelease: false
         env:
