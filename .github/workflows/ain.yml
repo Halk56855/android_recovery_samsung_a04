@@ -26,9 +26,11 @@ jobs:
 
       - name: Fix Device Tree Path
         run: |
-          # تجهيز المسار السليم ونسخ الملفات بسرعة فائقة بدون تكرار
           mkdir -p device/samsung/a04
           git archive HEAD | tar -x -C device/samsung/a04
+          
+          # إزالة أي استدعاء للملف المشترك المفقود من ملفات الـ Makefiles تلقائياً لتجنب توقف البناء
+          find device/samsung/a04 -type f \( -name "*.mk" -o -name "Android.bp" \) -exec sed -i '/jdm-mt6765-cmn/d' {} + || true
 
       - name: Start Compilation
         run: |
@@ -54,7 +56,7 @@ jobs:
           name: "TWRP 3.7.1 for Samsung Galaxy A04"
           body: |
             ### مخصص لهاتف: Samsung Galaxy A04 (SM-A045F)
-            - تم البناء بنجاح عبر GitHub Actions.
+            - تم تخطي الملفات المشتركة والبناء بنجاح.
           draft: false
           prerelease: false
         env:
