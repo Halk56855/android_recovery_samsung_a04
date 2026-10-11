@@ -17,15 +17,17 @@ jobs:
       - name: Set up Build Environment
         run: |
           sudo apt-get update
-          sudo apt-get install -y git repo wget curl python3
+          sudo apt-get install -y git repo wget curl python3 zip unzip
 
-      - name: Initialize TWRP Manifest
+      - name: Initialize TWRP Manifest (Android 12.1)
         run: |
-          repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_omni.git -b twrp-11
+          # استخدام المانفيست المخصص لإصدارات أندرويد 12.1
+          repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1
           repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune -j8
 
       - name: Move Device Tree to Correct Path
         run: |
+          # تجهيز مسار الجهاز بنسخ محتويات مستودعك إليه
           mkdir -p device/samsung/a04
           rm -rf device/samsung/a04/*
           cp -r * device/samsung/a04/ || true
@@ -35,26 +37,28 @@ jobs:
         run: |
           export ALLOW_MISSING_DEPENDENCIES=true
           . build/envsetup.sh
-          lunch omni_a04-eng
+          lunch twrp_a04-eng || lunch omni_a04-eng
           mka recoveryimage
 
       - name: Prepare Release Artifact
         id: packer
         run: |
           mkdir -p final_output
-          cp out/target/product/a04/recovery.img final_output/twrp-3.5-galaxy-a04.img
-          echo "tag_name=twrp-a04-$(date +%Y%m%d)" >> $GITHUB_OUTPUT
+          if [ -f out/target/product/a04/recovery.img ]; then
+            cp out/target/product/a04/recovery.img final_output/twrp-3.7.1-galaxy-a04.img
+          fi
+          echo "tag_name=twrp-a04-$(date +\%Y\%m\%d)" >> $GITHUB_OUTPUT
 
       - name: Create Release and Upload Image
         uses: softprops/action-gh-release@v1
         with:
-          files: final_output/twrp-3.5-galaxy-a04.img
+          files: final_output/twrp-3.7.1-galaxy-a04.img
           tag_name: ${{ steps.packer.outputs.tag_name }}
-          name: "TWRP for Samsung Galaxy A04"
+          name: "TWRP 3.7.1 for Samsung Galaxy A04"
           body: |
             ### مخصص لهاتف: Samsung Galaxy A04 (SM-A045F)
-            - تم التجميع تلقائياً عبر GitHub Actions.
-            - مصدر الشجرة: مستودع Halk56855.
+            - **الإصدار:** TWRP 12.1
+            - **طريقة التثبيت:** تفليش ملف `.img` أو تحويله لـ `.tar` باستخدام أودين عبر AP.
           draft: false
           prerelease: false
         env:
