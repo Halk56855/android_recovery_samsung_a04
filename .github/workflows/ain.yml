@@ -24,6 +24,74 @@ jobs:
           repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1
           repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune -j8
 
+      - name: Setup Device Tree and Common Tree
+        run: |
+          # 1. تجهيز شجرة الجهاز الأساسية
+          mkdir -p device/samsung/a04
+          git archive HEAD | tar -x -C device/samsung/a04
+
+          # 2. سحب الملفات المشتركة الصحيحة التي عثرت عليها
+          git clone https://github.com/rsuplaygrnd/android_recovery_samsung_mt6765-common.git -b master device/samsung/mt6765-common
+
+          # 3. توفير المجلد في كلا المسارين لضمان توافق مسارات البحث تماماً
+          mkdir -p device/samsung/jdm-mt6765-cmn
+          cp -r device/samsung/mt6765-common/* device/samsung/jdm-mt6765-cmn/ || true
+
+      - name: Start Compilation
+        run: |
+          export ALLOW_MISSING_DEPENDENCIES=true
+          . build/envsetup.sh
+          lunch twrp_a04-eng || lunch omni_a04-eng
+          mka recoveryimage
+
+      - name: Prepare Release Artifact
+        id: packer
+        run: |
+          mkdir -p final_output
+          if [ -f out/target/product/a04/recovery.img ]; then
+            cp out/target/product/a04/recovery.img final_output/twrp-3.7.1-galaxy-a04.img
+          fi
+          echo "tag_name=twrp-a04-$(date +%Y%m%d)" >> $GITHUB_OUTPUT
+
+      - name: Create Release and Upload Image
+        uses: softprops/action-gh-release@v1
+        with:
+          files: final_output/twrp-3.7.1-galaxy-a04.img
+          tag_name: ${{ steps.packer.outputs.tag_name }}
+          name: "TWRP 3.7.1 for Samsung Galaxy A04"
+          body: |
+            ### مخصص لهاتف: Samsung Galaxy A04 (SM-A045F)
+            - تم البناء بنجاح مع دمج الملفات المشتركة لـ MT6765[span_1](start_span)[span_1](end_span).
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+name: Build TWRP for Galaxy A04
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build TWRP Recovery
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Build Environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git repo wget curl python3 zip unzip
+
+      - name: Initialize TWRP Manifest (Android 12.1)
+        run: |
+          repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1
+          repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune -j8
+
       - name: Fix Device Tree and Add Missing Properties
         run: |
           mkdir -p device/samsung/a04
