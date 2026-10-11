@@ -1,4 +1,4 @@
-name: Build TWRP for Galaxy A04
+namename: Build TWRP for Galaxy A04
 
 on:
   workflow_dispatch:
@@ -26,12 +26,9 @@ jobs:
 
       - name: Fix Device Tree Path
         run: |
-          # مسح أي مسار قديم خاطئ وإنشاء المسار السليم تماماً
-          rm -rf device/samsung/a04
+          # تجهيز المسار السليم ونسخ الملفات بسرعة فائقة بدون تكرار
           mkdir -p device/samsung/a04
-          
-          # نسخ محتويات مستودعك الحالي مباشرة إلى مسار الجهاز بدون تكرار
-          find . -maxdepth 1 ! -name '.' ! -name '.git' ! -name '.github' -exec cp -r {} device/samsung/a04/ \;
+          git archive HEAD | tar -x -C device/samsung/a04
 
       - name: Start Compilation
         run: |
