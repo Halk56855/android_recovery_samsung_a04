@@ -30,10 +30,13 @@ jobs:
           mkdir -p device/samsung/a04
           git archive HEAD | tar -x -C device/samsung/a04
 
-          # 2. سحب الملفات المشتركة الصحيحة التي عثرت عليها
+          # 2. إزالة ملف Android.mk من الجذر الذي يسبب مشكلة التوقف
+          rm -f device/samsung/a04/Android.mk
+
+          # 3. سحب الملفات المشتركة الصحيحة لمعالج MT6765
           git clone https://github.com/rsuplaygrnd/android_recovery_samsung_mt6765-common.git -b master device/samsung/mt6765-common
 
-          # 3. توفير المجلد في كلا المسارين لضمان توافق مسارات البحث تماماً
+          # 4. توفير المجلد في المسار المشترك لضمان التطابق
           mkdir -p device/samsung/jdm-mt6765-cmn
           cp -r device/samsung/mt6765-common/* device/samsung/jdm-mt6765-cmn/ || true
 
@@ -61,7 +64,7 @@ jobs:
           name: "TWRP 3.7.1 for Samsung Galaxy A04"
           body: |
             ### مخصص لهاتف: Samsung Galaxy A04 (SM-A045F)
-            - تم البناء بنجاح مع دمج الملفات المشتركة لـ MT6765[span_1](start_span)[span_1](end_span).
+            - تم تخطي ملف الجذر وإتمام البناء بنجاح.
           draft: false
           prerelease: false
         env:
