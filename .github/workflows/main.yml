@@ -1,0 +1,60 @@
+name: Build TWRP for Galaxy A04
+
+on:
+  workflow_dispatch: # يتيح لك بدء البناء يدويًا من تبويب Actions في جيثب
+
+jobs:
+  build:
+    name: Build TWRP Recovery
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write # صلاحية الكتابة لرفع الملف إلى Releases
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Build Environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git repo wget curl python3
+
+      - name: Initialize TWRP Manifest
+        run: |
+          repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_omni.git -b twrp-12.1
+          repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune -j8
+
+      - name: Clone Device Tree for Galaxy A04
+        run: |
+          # سحب شجرة الجهاز الخاصة بهاتف A04 من مستودع rsuntk في المسار الصحيح
+          git clone https://github.com/rsuntk/android_recovery_samsung_a04.git -b twrp-12.1 device/samsung/a04
+
+      - name: Start Compilation
+        run: |
+          export ALLOW_MISSING_DEPENDENCIES=true
+          . build/envsetup.sh
+          lunch omni_a04-eng
+          mka recoveryimage
+
+      - name: Prepare Release Artifact
+        id: packer
+        run: |
+          mkdir -p final_output
+          cp out/target/product/a04/recovery.img final_output/twrp-3.7.1-galaxy-a04.img
+          echo "tag_name=twrp-a04-$(date +%Y%m%d)" >> $GITHUB_OUTPUT
+
+      - name: Create Release and Upload Image
+        uses: softprops/action-gh-release@v1
+        with:
+          files: final_output/twrp-3.7.1-galaxy-a04.img
+          tag_name: ${{ steps.packer.outputs.tag_name }}
+          name: "TWRP 3.7.1 for Samsung Galaxy A04"
+          body: |
+            ### مخصص لهاتف: Samsung Galaxy A04 (SM-A045F)
+            - تم التجميع تلقائياً عبر GitHub Actions.
+            - إصدار الريكفري: TWRP 12.1 (مبني على أندرويد 12).
+            - طريقة التفليش: عبر برنامج Odin باستخدام خانة AP مع ملف vbmeta.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
