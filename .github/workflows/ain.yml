@@ -1,4 +1,4 @@
-namename: Build TWRP for Galaxy A04
+name: Build TWRP for Galaxy A04
 
 on:
   workflow_dispatch:
